@@ -18,6 +18,7 @@ import java.util.List;
 public class CorsConfig {
 
     private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of(
+            "https://attendance-system-r12uqtzgu-anushkajoshi1602-5279s-projects.vercel.app",
             "https://attendance-system-fuhbffo5y-anushkajoshi1602-5279s-projects.vercel.app",
             "http://localhost:5173",
             "http://localhost:5174",
@@ -32,13 +33,14 @@ public class CorsConfig {
         // Allow credentials (cookies, auth headers) with explicit non-wildcard origins
         config.setAllowCredentials(true);
 
-        // Exact production Vercel origin + local development origins
+        // Exact production Vercel origins + local development origins
         for (String origin : resolveAllowedOrigins()) {
             config.addAllowedOrigin(origin);
         }
 
         // Support preview deployments on Vercel while preserving strict origin checks
         config.addAllowedOriginPattern("https://*-anushkajoshi1602-5279s-projects.vercel.app");
+        config.addAllowedOriginPattern("https://*.vercel.app");
 
         // Allow GET, POST, PUT, PATCH, DELETE, and OPTIONS methods
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -49,7 +51,8 @@ public class CorsConfig {
                 "Authorization",
                 "Accept",
                 "Origin",
-                "X-Requested-With"
+                "X-Requested-With",
+                "*"
         ));
 
         // Expose headers for client access
@@ -60,6 +63,7 @@ public class CorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/**", config);
 
         return new CorsFilter(source);
     }
@@ -69,9 +73,9 @@ public class CorsConfig {
         String envOrigins = System.getenv("ALLOWED_ORIGINS");
         if (envOrigins != null && !envOrigins.isBlank()) {
             for (String origin : envOrigins.split(",")) {
-                String trimmed = origin.trim();
-                if (!trimmed.isEmpty() && !origins.contains(trimmed)) {
-                    origins.add(trimmed);
+                String cleanOrigin = origin.trim().replaceAll("/+$", "");
+                if (!cleanOrigin.isEmpty() && !origins.contains(cleanOrigin)) {
+                    origins.add(cleanOrigin);
                 }
             }
         }

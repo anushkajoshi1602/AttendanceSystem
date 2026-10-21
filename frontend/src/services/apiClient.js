@@ -14,7 +14,8 @@ export class ApiError extends Error {
  * All real network access in the app goes through this function.
  */
 export async function request(path, { method = 'GET', body, params, signal } = {}) {
-  const url = new URL(API_BASE_URL + path);
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = new URL(`${API_BASE_URL}${cleanPath}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
