@@ -390,6 +390,33 @@ Output: `frontend/dist/`
 
 ---
 
+## Docker & Render Deployment
+
+AttendEase includes a production-ready, root-level multi-stage [`Dockerfile`](file:///c:/Users/Anushka/Desktop/studentattendancesystem/Dockerfile) and [`.dockerignore`](file:///c:/Users/Anushka/Desktop/studentattendancesystem/.dockerignore) configured for container platforms such as **Render**.
+
+### Container Architecture
+1. **Multi-Stage Build**:
+   - **Stage 1 (Builder)**: Uses `maven:3.9.9-eclipse-temurin-21` to compile Java sources and package the self-contained executable Spring Boot fat JAR.
+   - **Stage 2 (Runtime)**: Copies the executable JAR into a lightweight `eclipse-temurin:21-jre` container, keeping image size minimal and attack surface low. The React frontend is explicitly excluded via [`.dockerignore`](file:///c:/Users/Anushka/Desktop/studentattendancesystem/.dockerignore).
+2. **Dynamic Port Binding**:
+   - `application.properties` specifies `server.port=${PORT:8080}`, automatically binding to Render's dynamically injected `$PORT` environment variable (falling back to `8080` locally).
+3. **Environment-Driven Database Configuration**:
+   - Expects `DB_URL`, `DB_USER`, and `DB_PASSWORD` in the container environment. No credentials are baked into the container.
+
+### Deploying to Render
+1. Push this repository to GitHub.
+2. On Render, select **New +** → **Web Service**.
+3. Connect your repository.
+4. Set **Runtime** to **Docker** (Render will automatically detect the root `Dockerfile`).
+5. In the **Environment Variables** section, configure:
+   - `DB_URL`: e.g. `jdbc:mysql://<mysql-host>:3306/attendance_db`
+   - `DB_USER`: e.g. `attendance_user`
+   - `DB_PASSWORD`: your hosted database password
+   - `JAVA_OPTS` *(optional)*: e.g. `-Xmx512m` for Render free/starter instances
+6. Deploy. Render will execute the multi-stage Docker build and start the REST API.
+
+---
+
 ## Troubleshooting Guide
 
 ### 1. MySQL Authentication Error (`Access denied for user 'root'@'localhost'`)
@@ -408,8 +435,8 @@ Output: `frontend/dist/`
   If stopped, start it via `Start-Service MySQL80` or through Windows Services.
 
 ### 3. CORS Origin Errors in Browser Console
-- **Cause**: The React frontend is running on a port not listed in the backend CORS configuration.
-- **Fix**: Backend [`CorsConfig.java`](file:///c:/Users/Anushka/Desktop/studentattendancesystem/src/main/java/com/attendance/config/CorsConfig.java) permits `http://localhost:5173`, `http://localhost:5174`, `http://127.0.0.1:5173`, and `http://127.0.0.1:5174`. Ensure your browser URL matches one of these ports.
+- **Cause**: The frontend origin is not allowed by the backend CORS configuration.
+- **Fix**: Backend [`CorsConfig.java`](file:///c:/Users/Anushka/Desktop/studentattendancesystem/src/main/java/com/attendance/config/CorsConfig.java) permits the production Vercel frontend (`https://attendance-system-fuhbffo5y-anushkajoshi1602-5279s-projects.vercel.app`), Vercel preview deployments, and local development origins (`http://localhost:5173`, `http://localhost:5174`, `http://127.0.0.1:5173`, `http://127.0.0.1:5174`). For additional custom domains, pass them via the `ALLOWED_ORIGINS` environment variable (comma-separated).
 
 ### 4. Windows PowerShell Script Execution Policy Error
 - **Cause**: Windows blocks PowerShell execution of `.ps1` wrapper scripts.
